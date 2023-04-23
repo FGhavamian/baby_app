@@ -52,6 +52,9 @@ def compute_sum_over_past_hours(
     baby_id: int,
     current_user: schemas.UserOut = Depends(oauth2.get_current_user),
 ):
+    cur.execute(f"select * from babies where id = {baby_id}")
+    baby = cur.fetchone()
+
     if not baby:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
