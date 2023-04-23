@@ -46,6 +46,39 @@ def add_amount(
     return added_amount
 
 
+@router.get("/stats", response_model=Dict)
+def compute_sum_over_past_hours(
+    num_hours: int,
+    baby_id: int,
+    current_user: schemas.UserOut = Depends(oauth2.get_current_user),
+):
+    if not baby:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"baby with id={baby_id} not found.",
+        )
+
+    baby = schemas.BabyOut(**baby)
+
+    if baby.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You are not authorized to measure statistics for baby with id={baby_id}",
+        )
+
+    cur.execute(
+        f"""
+        select * 
+        from amounts
+        where baby_id = {baby_id};"""
+    )
+    amounts = cur.fetchall()
+
+    hours_sum = compute_rolling_sum(amounts, num_hours)
+
+    return hours_sum.to_dict()
+
+
 @router.get("/{n}", response_model=List[schemas.AmountOut])
 def read_amounts(
     n: int,
@@ -80,36 +113,3 @@ def read_amounts(
     amounts = cur.fetchall()
 
     return amounts
-
-
-@router.get("/stats", response_model=Dict)
-def compute_sum_over_past_hours(
-    num_hours: int,
-    baby_id: int,
-    current_user: schemas.UserOut = Depends(oauth2.get_current_user),
-):
-    if not baby:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"baby with id={baby_id} not found.",
-        )
-
-    baby = schemas.BabyOut(**baby)
-
-    if baby.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"You are not authorized to measure statistics for baby with id={baby_id}",
-        )
-
-    cur.execute(
-        f"""
-        select * 
-        from amounts
-        where baby_id = {baby_id};"""
-    )
-    amounts = cur.fetchall()
-
-    hours_sum = compute_rolling_sum(amounts, num_hours)
-
-    return hours_sum.to_dict()
