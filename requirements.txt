@@ -61,3 +61,4 @@ uvloop==0.17.0
 watchfiles==0.18.1
 wcwidth==0.2.6
 websockets==10.4
+httpx
