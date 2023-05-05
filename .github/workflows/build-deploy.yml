@@ -4,6 +4,16 @@ on:
     branches:
       - "main"
 
+env:
+  DATABASE_HOSTNAME: localhost
+  DATABASE_PORT: 5432
+  DATABASE_PASSWORD: password123
+  DATABASE_NAME: baby
+  DATABASE_USERNAME: postgres
+  SECRET_KEY: c242d3545437d99cb0692e19a3bffac5c4f8b2d114b0244fb8d546b9054dcc7e
+  ALGORITHM: HS256
+  ACCESS_TOKEN_EXPIRE_MINUTES: 30
+
 jobs:
   job1:
     runs-on: ubuntu-latest
