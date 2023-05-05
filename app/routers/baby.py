@@ -1,42 +1,47 @@
 from fastapi import APIRouter, status, HTTPException, Depends
+from sqlalchemy.orm import Session
 
-from .. import schemas, oauth2
-from app.database import cur, conn
+from .. import schemas, oauth2, crude
+from app.database import get_db
 
 
 router = APIRouter(prefix="/babies", tags=["babies"])
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.BabyOut)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Baby)
 def create_baby(
-    baby: schemas.BabyBase,
-    current_user: schemas.UserOut = Depends(oauth2.get_current_user),
+    baby: schemas.BabyCreate,
+    current_user: schemas.User = Depends(oauth2.get_current_user),
+    db: Session = Depends(get_db),
 ):
-    cur.execute(
-        f"insert into babies (name, user_id) values ('{baby.name}', {current_user.id}) returning *;"
-    )
+    db_baby = crude.get_baby_by_name(db, current_user.id, baby.name)
 
-    conn.commit()
-    added_baby = cur.fetchone()
+    if db_baby:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"You already have a baby named {baby.name}.",
+        )
 
-    return added_baby
+    return crude.create_baby(db, baby, current_user.id)
 
 
-@router.get("/{id}", response_model=schemas.BabyOut)
-def get_baby(id: int, current_user: int = Depends(oauth2.get_current_user)):
-    cur.execute(f"select * from babies where id = {id};")
-    baby = cur.fetchone()
-    baby = schemas.BabyOut(**baby)
+@router.get("/{id}", response_model=schemas.Baby)
+def get_baby(
+    id: int,
+    current_user: schemas.User = Depends(oauth2.get_current_user),
+    db: Session = Depends(get_db),
+):
+    db_baby = crude.get_baby(db, id)
 
-    if not baby:
+    if not db_baby:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"baby with id={id} not found"
         )
 
-    if baby.user_id != current_user.id:
+    if db_baby.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"You are not authorized to see baby with id={id}",
         )
 
-    return baby
+    return db_baby

@@ -4,41 +4,46 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr
 
 
-class AmountBase(BaseModel):
+class Amount(BaseModel):
+    id: int
     value: int
     baby_id: int
-
-
-class AmountOut(AmountBase):
-    id: int
     created_at: datetime
+
+    class Config:
+        orm_mode = True
 
 
 class AmountSum(BaseModel):
     created_at = datetime
-    amount: int
+    value: int
 
 
-class BabyBase(BaseModel):
+class BabyCreate(BaseModel):
     name: str
 
 
-class BabyOut(BabyBase):
+class Baby(BaseModel):
     id: int
+    name: str
     created_at: datetime
     user_id: int
 
+    class Config:
+        orm_mode = True
 
-class UserBase(BaseModel):
-    email: EmailStr
 
-
-class UserOut(UserBase):
+class User(BaseModel):
     id: int
+    email: EmailStr
     created_at: datetime
 
+    class Config:
+        orm_mode = True
 
-class UserCreate(UserBase):
+
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
 
 

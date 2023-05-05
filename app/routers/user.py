@@ -1,35 +1,42 @@
 from fastapi import APIRouter, status, HTTPException, Depends
+from sqlalchemy.orm import Session
 
-from .. import schemas, utils, oauth2
-from ..database import cur, conn
+from .. import schemas, oauth2, crude
+from ..database import get_db
 
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
-def create_user(user: schemas.UserCreate):
-    user.password = utils.hash(user.password)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.User)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crude.get_user_by_email(db, user.email)
 
-    cur.execute(
-        f"insert into users (email, password) values ('{user.email}', '{user.password}') returning *;"
-    )
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+        )
 
-    conn.commit()
-    added_user = cur.fetchone()
-
-    return added_user
+    return crude.create_user(db, user)
 
 
-@router.get("/{id}", response_model=schemas.UserOut)
-def get_user(id: int, current_user: int = Depends(oauth2.get_current_user)):
-    cur.execute(f"select * from users where id = {id};")
+@router.get("/{id}", response_model=schemas.User)
+def get_user(
+    id: int,
+    current_user: schemas.User = Depends(oauth2.get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.id != id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Not allowed to access other users data",
+        )
 
-    user = cur.fetchone()
+    db_user = crude.get_user(db, id)
 
-    if not user:
+    if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id={id} not found"
         )
 
-    return user
+    return db_user
