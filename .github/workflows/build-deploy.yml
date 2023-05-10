@@ -6,7 +6,8 @@ on:
 
 jobs:
   job1:
-    environment: test
+    environment:
+      name: test
     env:
       DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
       DATABASE_PORT: ${{secrets.DATABASE_PORT}}
