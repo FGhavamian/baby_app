@@ -29,6 +29,8 @@ def session():
     finally:
         db.close()
 
+    print()
+
 
 @pytest.fixture()
 def client(session):
