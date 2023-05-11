@@ -29,7 +29,7 @@ def session():
     finally:
         db.close()
 
-    # print()
+    print()
 
 
 @pytest.fixture()
